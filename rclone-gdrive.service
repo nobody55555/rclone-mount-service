@@ -1,0 +1,27 @@
+[Unit]
+Description=RClone Mount for Google Drive
+# To be placed in /etc/systemd/system/rclone-gdrive.service
+# Do not use in line comments in this file
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# Reverted to notify for readiness support
+Type=notify  
+# Adjust user name accordingly, not UID
+User=oem     
+# Use group name accordingly, not GID
+Group=oem    
+ExecStartPre=/bin/sh -c '/usr/bin/fusermount -uz /home/oem/GoogleDrive || true'
+ExecStart=/usr/bin/rclone mount gdrive: /home/oem/GoogleDrive \
+    --vfs-cache-mode writes \
+    --allow-other \
+    --allow-non-empty
+ExecStop=/usr/bin/fusermount -uz /home/oem/GoogleDrive
+KillMode=mixed
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
