@@ -1,0 +1,50 @@
+#!/sbin/openrc-run
+#
+# init/openrc/rclone-gdrive
+#
+# OpenRC runscript for mounting Google Drive via rclone
+#
+
+description="RClone Google Drive mount"
+
+# Ensure network is available before starting
+depend() {
+    need net
+    after net
+}
+
+# Variables (override via /etc/conf.d/rclone-gdrive)
+: ${RC_USER:="oem"}
+: ${RC_GROUP:="oem"}
+: ${RC_MOUNT:="/home/${RC_USER}/GoogleDrive"}
+: ${RC_REMOTE:="gdrive:"}
+
+start_pre() {
+    ebegin "Cleaning up any stale mount at ${RC_MOUNT}"
+    fusermount -uz "${RC_MOUNT}" || true
+    eend $?
+}
+
+start() {
+    ebegin "Mounting ${RC_REMOTE} at ${RC_MOUNT}"
+    start-stop-daemon --start --quiet --background \
+        --chuid "${RC_USER}:${RC_GROUP}" \
+        --exec /usr/bin/rclone -- \
+            mount "${RC_REMOTE}" "${RC_MOUNT}" \
+            --vfs-cache-mode writes \
+            --allow-other \
+            --allow-non-empty
+    eend $?
+}
+
+stop() {
+    ebegin "Unmounting ${RC_MOUNT}"
+    fusermount -uz "${RC_MOUNT}"
+    eend $?
+}
+
+status() {
+    ebegin "Checking mount status"
+    mountpoint -q "${RC_MOUNT}"
+    eend $?
+}
